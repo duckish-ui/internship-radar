@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Internship Radar</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e6e8ee; --muted: #8b93a7; --accent: #6ea8fe; --new: #3ddc97;
+    --simplify: #6ea8fe; --vansh: #f7b267; --empluzzed: #c792ea;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 20px 28px 8px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+  .live { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.on { background: var(--new); box-shadow: 0 0 0 0 rgba(61,220,151,.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(61,220,151,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,151,0); } }
+  .spacer { flex: 1; }
+  button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; padding: 8px 28px 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .tile .label { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .tile .num { font-size: 26px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .sub { color: var(--muted); font-size: 12px; }
+  .tile.new .num { color: var(--new); }
+  .tile a { color: inherit; text-decoration: none; }
+  .err { color: #ff7b7b; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 0 28px 12px; }
+  input[type=search], select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; }
+  input[type=search] { min-width: 280px; flex: 1; max-width: 460px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; user-select: none; }
+  .chip input { display: none; }
+  .chip.off { opacity: .4; }
+  .sw { width: 8px; height: 8px; border-radius: 50%; }
+
+  main { padding: 0 28px 40px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; background: var(--panel2); position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  tr.is-new td { background: rgba(61,220,151,.07); }
+  tr.is-new td:first-child { box-shadow: inset 3px 0 0 var(--new); }
+  tr.flash td { animation: flash 2.5s ease-out; }
+  @keyframes flash { from { background: rgba(61,220,151,.35); } }
+  .company { font-weight: 600; }
+  .badge { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: var(--new); color: #06281a; margin-left: 6px; vertical-align: 1px; }
+  .tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin: 2px 4px 0 0; }
+  .src { font-size: 12px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .loc { color: var(--muted); font-size: 13px; max-width: 260px; }
+  .when { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  a.apply { color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; }
+  a.apply:hover { text-decoration: underline; }
+  .more { display: block; margin: 14px auto 0; }
+  .more[hidden] { display: none; }
+  .empty { text-align: center; color: var(--muted); padding: 40px; }
+
+  #toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+  .toast { background: var(--panel2); border: 1px solid var(--new); border-radius: 10px; padding: 12px 14px; max-width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,.4); animation: in .25s ease-out; }
+  .toast b { color: var(--new); }
+  @keyframes in { from { transform: translateY(10px); opacity: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Internship Radar</h1>
+  <span class="live"><span id="dot" class="dot"></span><span id="liveText">connecting…</span></span>
+  <span class="spacer"></span>
+  <button id="notifyBtn">🔔 Enable alerts</button>
+  <button id="refreshBtn">↻ Check now</button>
+  <button id="seenBtn" class="primary">✓ Mark all seen</button>
+</header>
+
+<section class="tiles" id="tiles"></section>
+
+<div class="controls">
+  <input type="search" id="q" placeholder="Search company, role, location…  (e.g. software, NYC, Google)" />
+  <span id="srcChips"></span>
+  <label class="chip" id="newOnlyChip"><input type="checkbox" id="newOnly" />✨ New only</label>
+  <select id="sort">
+    <option value="posted">Newest posted</option>
+    <option value="seen">Newest found</option>
+    <option value="company">Company A–Z</option>
+  </select>
+</div>
+
+<main>
+  <table>
+    <thead><tr><th>Company</th><th>Role</th><th>Location</th><th>Source</th><th>Posted</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <button class="more" id="moreBtn" hidden>Show more</button>
+</main>
+
+<div id="toasts"></div>
+
+<script>
+const COLORS = { Simplify: "var(--simplify)", Vansh: "var(--vansh)", Empluzzed: "var(--empluzzed)" };
+const PAGE = 150;
+let data = { jobs: [], sources: {} };
+let shown = PAGE;
+let lastSeenAck = Number(localStorage.getItem("lastSeenAck") || 0);
+let hiddenSources = new Set(JSON.parse(localStorage.getItem("hiddenSources") || "[]"));
+let flashIds = new Set();
+let unread = 0;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const isNew = (j) => j.firstSeen > 0 && j.firstSeen > lastSeenAck;
+
+function ago(ms) {
+  const s = (Date.now() - ms) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  if (s < 86400 * 30) return Math.floor(s / 86400) + "d ago";
+  return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
+}
+
+async function load() {
+  data = await (await fetch("/api/jobs")).json();
+  render();
+}
+
+function filtered() {
+  const q = $("q").value.trim().toLowerCase();
+  const terms = q ? q.split(/\s+/) : [];
+  let list = data.jobs.filter((j) => {
+    if (hiddenSources.has(j.source)) return false;
+    if ($("newOnly").checked && !isNew(j)) return false;
+    if (!terms.length) return true;
+    const hay = (j.company + " " + j.title + " " + j.locations.join(" ") + " " + j.tags.join(" ")).toLowerCase();
+    return terms.every((t) => hay.includes(t));
+  });
+  const sort = $("sort").value;
+  if (sort === "seen") list = [...list].sort((a, b) => b.firstSeen - a.firstSeen || b.posted - a.posted);
+  if (sort === "company") list = [...list].sort((a, b) => a.company.localeCompare(b.company));
+  return list;
+}
+
+function render() {
+  // tiles
+  const newCount = data.jobs.filter(isNew).length;
+  const today = data.jobs.filter((j) => Date.now() - j.posted < 86400e3).length;
+  let tiles = `
+    <div class="tile new"><div class="label">✨ New since you last checked</div><div class="num">${newCount}</div><div class="sub">found after you clicked “mark all seen”</div></div>
+    <div class="tile"><div class="label">Open listings</div><div class="num">${data.jobs.length.toLocaleString()}</div><div class="sub">${today} posted in the last 24h</div></div>`;
+  for (const [name, s] of Object.entries(data.sources || {})) {
+    tiles += `<div class="tile"><a href="${esc(s.site)}" target="_blank" rel="noopener">
+      <div class="label"><span class="sw" style="background:${COLORS[name]}"></span>${esc(name)} ↗</div>
+      <div class="num">${s.ok === false ? "—" : s.count.toLocaleString()}</div>
+      <div class="sub ${s.ok === false ? "err" : ""}">${s.ok === false ? esc(s.error) : s.ok ? "online" : "loading…"}</div></a></div>`;
+  }
+  $("tiles").innerHTML = tiles;
+
+  // source chips
+  $("srcChips").innerHTML = Object.keys(data.sources || {}).map((n) =>
+    `<label class="chip ${hiddenSources.has(n) ? "off" : ""}" data-src="${esc(n)}"><span class="sw" style="background:${COLORS[n]}"></span>${esc(n)}</label>`).join(" ");
+
+  // rows
+  const list = filtered();
+  const rows = list.slice(0, shown).map((j) => {
+    const n = isNew(j);
+    return `<tr class="${n ? "is-new" : ""} ${flashIds.has(j.id) ? "flash" : ""}">
+      <td><span class="company">${esc(j.company)}</span>${n ? '<span class="badge">NEW</span>' : ""}</td>
+      <td>${esc(j.title)}<div>${j.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div></td>
+      <td class="loc">${esc(j.locations.slice(0, 3).join(" · "))}${j.locations.length > 3 ? ` +${j.locations.length - 3}` : ""}</td>
+      <td><span class="src"><span class="sw" style="background:${COLORS[j.source]}"></span>${esc(j.source)}</span></td>
+      <td class="when" title="${new Date(j.posted).toLocaleString()}">${ago(j.posted)}</td>
+      <td><a class="apply" href="${esc(j.url)}" target="_blank" rel="noopener">Apply →</a></td>
+    </tr>`;
+  }).join("");
+  $("rows").innerHTML = rows || `<tr><td colspan="6" class="empty">${data.lastSync ? "No listings match your filters." : "Fetching listings from all three sources…"}</td></tr>`;
+  $("moreBtn").hidden = list.length <= shown;
+  $("moreBtn").textContent = `Show more (${(list.length - shown).toLocaleString()} left)`;
+  $("liveText").textContent = data.lastSync ? `live · last checked ${new Date(data.lastSync).toLocaleTimeString()}` : "first sync in progress…";
+  document.title = (unread ? `(${unread}) ` : "") + "Internship Radar";
+}
+
+// ---- live updates
+function connect() {
+  const es = new EventSource("/events");
+  es.onopen = () => $("dot").classList.add("on");
+  es.onerror = () => { $("dot").classList.remove("on"); $("liveText").textContent = "reconnecting…"; };
+  es.addEventListener("sync", async (e) => {
+    const msg = JSON.parse(e.data);
+    await load();
+    if (msg.newJobs.length) {
+      msg.newJobs.forEach((j) => flashIds.add(j.id));
+      if (document.hidden) unread += msg.newJobs.length;
+      render();
+      announce(msg.newJobs);
+      setTimeout(() => { flashIds.clear(); }, 3000);
+    }
+  });
+}
+
+function announce(jobs) {
+  const first = jobs.slice(0, 3).map((j) => `${j.company} — ${j.title}`);
+  const more = jobs.length > 3 ? ` (+${jobs.length - 3} more)` : "";
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = `<b>${jobs.length} new internship${jobs.length > 1 ? "s" : ""}!</b><br>${first.map(esc).join("<br>")}${more}`;
+  $("toasts").appendChild(t);
+  setTimeout(() => t.remove(), 9000);
+  if ("Notification" in window && Notification.permission === "granted") {
+    const n = new Notification(`${jobs.length} new internship${jobs.length > 1 ? "s" : ""}`, { body: first.join("\n") + more });
+    n.onclick = () => { window.focus(); n.close(); };
+  }
+}
+
+// ---- controls
+$("q").addEventListener("input", () => { shown = PAGE; render(); });
+$("sort").addEventListener("change", render);
+$("newOnly").addEventListener("change", () => { $("newOnlyChip").classList.toggle("off", !$("newOnly").checked); render(); });
+$("newOnlyChip").classList.add("off");
+$("srcChips").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-src]"); if (!c) return;
+  const s = c.dataset.src;
+  hiddenSources.has(s) ? hiddenSources.delete(s) : hiddenSources.add(s);
+  localStorage.setItem("hiddenSources", JSON.stringify([...hiddenSources]));
+  render();
+});
+$("moreBtn").addEventListener("click", () => { shown += PAGE; render(); });
+$("seenBtn").addEventListener("click", () => { lastSeenAck = Date.now(); localStorage.setItem("lastSeenAck", lastSeenAck); unread = 0; render(); });
+$("refreshBtn").addEventListener("click", async () => {
+  $("refreshBtn").disabled = true; $("refreshBtn").textContent = "Checking…";
+  await fetch("/api/refresh", { method: "POST" });
+  $("refreshBtn").disabled = false; $("refreshBtn").textContent = "↻ Check now";
+});
+$("notifyBtn").addEventListener("click", async () => {
+  if (!("Notification" in window)) return alert("This browser doesn't support notifications.");
+  const p = await Notification.requestPermission();
+  $("notifyBtn").textContent = p === "granted" ? "🔔 Alerts on" : "🔕 Alerts blocked";
+});
+if ("Notification" in window && Notification.permission === "granted") $("notifyBtn").textContent = "🔔 Alerts on";
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { unread = 0; render(); } });
+setInterval(render, 60000); // keep "x ago" fresh
+
+load();
+connect();
+</script>
+</body>
+</html>
